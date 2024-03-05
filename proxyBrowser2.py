@@ -7,6 +7,7 @@ import time
 import pandas as pd
 from retry import retry
 import json
+from windscribeProxy import *
 
 
 
@@ -33,6 +34,17 @@ def get_random_proxy():
 
 def initialize_driver():
 
+    
+    
+    # try:
+    #     proxy = windscribeConnect()
+    # except Exception as e:
+    #     print(f"Error connecting {e}")
+    #     windscribeS = windscribeStatus()
+    #     if windscribeS is False:
+    #         windscribeLogin()
+    # print(f"Connected: {proxy}")
+
     options = uc.ChromeOptions()
     options.page_load_strategy = 'eager'
     # options.add_argument('--headless')
@@ -44,21 +56,25 @@ def initialize_driver():
     options.add_argument("--disable-images")
     options.add_argument("--blink-settings=imagesEnabled=false")
     options.add_argument("--disable-popup-blocking")
-    proxy = get_random_proxy()
 
-    proxy_helper = SeleniumAuthenticatedProxy(proxy_url= proxy)
+    # proxy = get_random_proxy()
 
-    proxy_helper.enrich_chrome_options(options)
+    # proxy_helper = SeleniumAuthenticatedProxy(proxy_url= proxy)
+
+    # proxy_helper.enrich_chrome_options(options)
+
+   
+         
 
     driver = uc.Chrome(options=options, version_main=121)
     driver.set_page_load_timeout(120)
 
-    return driver,proxy
+    return driver
 # @retry()
-def open_website(website,timeout = 0):
+def open_website(website,proxy,timeout = 0):
     print(f"Opening website: {website}")
     
-    driver,proxy = initialize_driver()
+    driver = initialize_driver()
     
    
  
@@ -69,16 +85,16 @@ def open_website(website,timeout = 0):
         time.sleep(timeout)
     end_time = time.time()
 
-    driver.get("https://api.ipify.org/?format=json")
+    # driver.get("https://api.ipify.org/?format=json")
 
-    proxyElement = driver.find_element(By.XPATH,"//pre")
+    # proxyElement = driver.find_element(By.XPATH,"//pre")
     
-    ip = json.loads(proxyElement.text)['ip']
+    # ip = json.loads(proxyElement.text)['ip']
     driver.quit()
     
     with open('reportData.txt', 'a') as fl:
-         fl.write(f"\n{website},{ip},{timeout},{end_time - start_time}")
-    return {"website":website,"proxy":ip,"sleep_time":timeout,"total_time":end_time - start_time}
+         fl.write(f"\n{website},{proxy},{timeout},{end_time - start_time}")
+    return {"website":website,"proxy":proxy,"sleep_time":timeout,"total_time":end_time - start_time}
 
 
 
@@ -95,10 +111,23 @@ if __name__ == "__main__":
        
         timeDict = []
         count = 0
+        print("Checking Proxy...")
+        # windscribeS = windscribeStatus()
+        # if windscribeS is False:
+        windscribeLogin()
+        count = 0
         while True:
-            
+
+            if count == 0:
+                 proxy = windscribeConnect()
+                 print(f"Connected: {proxy}")
+
+            count += 1
+            if count>5:
+                 count = 0
+
             website = random.choice(websites)    
-            data = open_website(website = website,timeout=2)
+            data = open_website(website = website,proxy = proxy,timeout=2)
             timeDict.append(data)
         
 
